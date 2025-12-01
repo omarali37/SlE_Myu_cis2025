@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gauss Solver (Final Version)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- MathJax is used ONLY for the final, exact fractional answer. -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        /* CSS retained for the Solver view, Matrix inputs, and display */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+            color: #1f2937;
+            transition: background-color 0.5s, color 0.5s;
+        }
+
+        #app {
+            background-color: #ffffff;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 5px 5px -5px rgba(0, 0, 0, 0.04);
+            border: 1px solid #e5e7eb;
+        }
+
+        .glass-panel {
+            background-color: #f9fafb;
+            border: 1px solid #f3f4f6;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: background-color 0.3s;
+        }
+        
+        /* RESPONSIVE FIX: Matrix Cell Size */
+        .matrix-cell {
+            width: 60px; /* Reduced base width for small screens */
+            max-width: 80px; /* Max width for larger screens */
+            text-align: center;
+            padding: 4px 2px;
+            line-height: 1.2;
+            font-size: 0.9rem;
+            height: 35px;
+            border-radius: 6px;
+            transition: all 0.3s;
+            background-color: #ffffff;
+            border: 1px solid #d1d5db;
+        }
+        @media (min-width: 640px) { /* Adjust width on small screens and up */
+            .matrix-cell {
+                width: 80px;
+            }
+        }
+        .matrix-cell:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+        }
+        .invalid-input {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.4);
+        }
+        
+        /* RESPONSIVE FIX: Matrix Inputs Wrapper for Horizontal Scroll */
+        .matrix-inputs-wrapper {
+            position: relative;
+            display: block; /* Change to block for better mobile flow */
+            padding: 10px 15px;
+            overflow-x: auto; /* Ensure horizontal scroll on overflow */
+            padding-bottom: 20px; 
+        }
+        /* Ensure brackets stay visible even with scroll */
+        .matrix-inputs-wrapper::before,
+        .matrix-inputs-wrapper::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 8px; 
+            border-radius: 4px;
+            border: 2px solid #5a67d8; 
+            z-index: 10;
+        }
+        .matrix-inputs-wrapper::before {
+            left: 0;
+            border-right: none;
+        }
+        .matrix-inputs-wrapper::after {
+            right: 0;
+            border-left: none;
+        }
+        .matrix-inputs-wrapper.augmented::after {
+            content: none;
+        }
+        .augmented-line {
+            border-right: 3px solid #6366f1;
+            padding-right: 8px;
+        }
+
+        .row-label {
+            width: 30px; 
+            text-align: right;
+            padding-right: 10px;
+            font-weight: bold;
+            color: #4f46e5;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            font-size: 1.1em;
+        }
+
+        .highlighted-row {
+            background-color: #fffbe6 !important;
+            transition: background-color 0.5s;
+            border-radius: 4px;
+        }
+
+        /* RESPONSIVE FIX: Step/Log Grid (Stacks on mobile) */
+        .step-log-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        @media (min-width: 768px) {
+            .step-log-grid {
+                grid-template-columns: 1fr 2fr;
+            }
+        }
+        
+        .matrix-table-wrapper {
+            padding: 0;
+            display: inline-block;
+            box-shadow: none;
+        }
+        
+        .matrix-display-container {
+             border: 2px solid #5a67d8;
+             border-radius: 8px;
+             padding: 8px;
+             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+             display: inline-block;
+        }
+        
+        .matrix-table {
+            border-collapse: collapse;
+            font-size: 1rem;
+        }
+        .matrix-table td {
+            padding: 4px 8px;
+            text-align: center;
+            position: relative;
+        }
+        .matrix-cell-content {
+            display: inline-block;
+            min-width: 40px; 
+            font-size: 1.1em; 
+            font-weight: 600;
+        }
+        .augmented-separator {
+            border-right: 3px solid #6366f1;
+            padding-right: 12px !important;
+        }
+        .matrix-row-container {
+            display: flex;
+            align-items: center;
+        }
+        .matrix-row-container.highlighted-row {
+            background-color: #fffbe6 !important;
+        }
+        
+        .matrix-row-container .row-label {
+            width: 35px;
+            color: #4f46e5;
+            padding-right: 5px;
+        }
+        
+        .operation-text {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        /* Solution List Style */
+        .solution-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+        .solution-list li {
+            padding: 8px 0;
+            border-bottom: 1px dashed #e5e7eb;
+            font-size: 1.1em;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* Ensure MathJax content doesn't break layout */
+            flex-wrap: wrap; 
+        }
+
+    </style>
+</head>
+<body class="light">
+    
+    <div id="toast-container"></div>
+    
+    <div id="app" class="max-w-5xl mx-auto rounded-xl p-6 md:p-10">
+
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6 border-b pb-2">
+            <h1 class="text-3xl font-extrabold text-indigo-700 text-center sm:text-left">
+                <i class="fas fa-square-root-alt mr-2"></i> Equation Solver (Gauss / Gauss-Jordan)
+            </h1>
+        </div>
+
+        <!-- 1. Equation Solver View (Gauss-Jordan) -->
+        <div id="solver-view" class="transition-opacity duration-500">
+            <div class="glass-panel p-4 sm:p-6 rounded-lg mb-8 shadow-md">
+                <h2 class="text-xl font-semibold text-indigo-800 mb-4 border-b pb-2 text-center">System Setup (Enter numbers or fractions like 1/2)</h2>
+                
+                <!-- Solver Method Selector -->
+                <div class="flex justify-center mb-6">
+                    <label class="block text-gray-700 w-full max-w-xs">Select Solution Method:
+                        <select id="solver-method" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-white">
+                            <option value="gauss_jordan">Gauss-Jordan Elimination (RREF)</option>
+                            <option value="gaussian">Gaussian Elimination (REF)</option>
+                        </select>
+                    </label>
+                </div>
+                
+                <!-- Matrix Size Inputs (Responsive layout) -->
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 justify-center items-center">
+                    <label class="block text-gray-700 w-full sm:w-auto">Rows (Equations):
+                        <input type="number" id="rows" value="3" min="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-white" onchange="generateMatrixInput()">
+                    </label>
+                    <label class="block text-gray-700 w-full sm:w-auto">Columns (Variables):
+                        <input type="number" id="cols" value="3" min="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-white" onchange="generateMatrixInput()">
+                    </label>
+                    <button onclick="generateMatrixInput()" class="bg-indigo-500 text-white px-4 py-2 rounded-xl mt-4 sm:mt-0 shadow-md hover:bg-indigo-600 transition w-full sm:w-auto">
+                        Apply Size
+                    </button>
+                </div>
+            </div>
+
+            <!-- Matrix Input & Controls (Grid stacks on mobile) -->
+            <div class="grid md:grid-cols-2 gap-8">
+                 <div id="matrix-input-container" class="mb-8 p-4 border rounded-xl shadow-lg glass-panel transition-all overflow-x-auto">
+                    <h3 class="text-lg font-bold text-gray-700 mb-4 text-center">Enter Augmented Matrix Coefficients (A | B)</h3>
+                    <div class="matrix-inputs-wrapper augmented" id="matrix-inputs">
+                        <!-- Inputs generated here -->
+                    </div>
+                </div>
+
+                <!-- Operations Buttons (Full width on mobile) -->
+                <div class="flex flex-col gap-4 justify-start pt-4">
+                    <button onclick="startSolution()" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold shadow-xl hover:bg-indigo-700 transition transform hover:scale-[1.01] w-full">
+                        <i class="fas fa-play mr-2"></i> Start Solution
+                    </button>
+                    <button onclick="generateRandomMatrix()" class="bg-yellow-500 text-white px-6 py-3 rounded-xl font-semibold shadow-xl hover:bg-yellow-600 transition w-full">
+                        <i class="fas fa-dice mr-2"></i> Generate Random
+                    </button>
+                    <button onclick="clearInputs()" class="bg-red-500 text-white px-6 py-3 rounded-xl font-semibold shadow-xl hover:bg-red-600 transition w-full">
+                        <i class="fas fa-times-circle mr-2"></i> Clear All
+                    </button>
+                    <button onclick="refreshMathJax()" class="bg-gray-500 text-white px-6 py-3 rounded-xl font-semibold shadow-xl hover:bg-gray-600 transition w-full">
+                        <i class="fas fa-sync-alt mr-2"></i> Refresh Equations
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Area (Stacks content vertically on mobile) -->
+            <div id="solver-results" class="hidden border-t pt-8 mt-4">
+                <h2 class="text-2xl font-bold text-indigo-700 mb-4 text-center">Results and Operation Log</h2>
+                
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div>
+                        <!-- System Classification -->
+                        <div id="system-classification" class="p-4 mb-4 rounded font-semibold hidden text-gray-900"></div>
+
+                        <!-- Final Solution -->
+                        <div id="final-solution" class="mb-6 glass-panel p-4 rounded-lg shadow-md"></div>
+                        
+                        <!-- Step Control Buttons -->
+                        <div class="flex justify-center gap-4 mb-6">
+                            <button id="prev-step-btn" onclick="showPrevStep()" disabled class="bg-gray-300 text-gray-700 px-4 py-2 rounded-xl font-medium transition hover:bg-gray-400 disabled:opacity-50">
+                                <i class="fas fa-arrow-left"></i> Previous Step
+                            </button>
+                            <button id="next-step-btn" onclick="showNextStep()" disabled class="bg-indigo-500 text-white px-4 py-2 rounded-xl font-medium transition hover:bg-indigo-600 disabled:opacity-50">
+                                Next Step <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Steps Display -->
+                    <div id="step-by-step-log" class="glass-panel p-6 rounded-lg border shadow-lg overflow-x-auto">
+                        <p class="text-gray-500">Solution steps will appear here.</p>
+                        <!-- Current step matrix and operation -->
+                    </div>
+                </div>
+
+                <!-- Export Options -->
+                <div class="mt-8 flex flex-wrap gap-4 justify-center">
+                    <button onclick="exportReport()" class="bg-teal-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-teal-600 transition">
+                        <i class="fas fa-print mr-2"></i> Export Detailed Report (Print)
+                    </button>
+                </div>
+            </div>
+        </div> <!-- End of solver-view -->
+
+    </div>
+
+    <!-- Firebase SDKs (kept for environment compatibility) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : undefined;
+
+        let app, auth, db;
+
+        window.firebaseInit = async () => {
+            if (!firebaseConfig) {
+                console.error("Firebase config is missing.");
+                return;
+            }
+
+            try {
+                setLogLevel('Debug');
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                window.db = db;
+
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                console.log("Firebase initialized and user signed in.");
+                window.userId = auth.currentUser?.uid || crypto.randomUUID();
+
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+            }
+        };
+
+        window.firebaseInit();
+    </script>
+
+    <script>
+        // =======================================================
+        // 1. Core Mathematical Utility Classes (Fraction and Complex)
+        // =======================================================
+
+        function gcd(a, b) {
+            a = Math.abs(a);
+            b = Math.abs(b);
+            while (b) {
+                [a, b] = [b, a % b];
+            }
+            return a;
+        }
+
+        class Fraction {
+            constructor(numerator, denominator = 1) {
+                if (denominator === 0) throw new Error("Denominator cannot be zero.");
+                this.numerator = numerator;
+                this.denominator = denominator;
+                this.reduce();
+            }
+
+            reduce() {
+                if (this.denominator < 0) {
+                    this.numerator *= -1;
+                    this.denominator *= -1;
+                }
+                const commonDivisor = gcd(this.numerator, this.denominator);
+                this.numerator /= commonDivisor;
+                this.denominator /= commonDivisor;
+            }
+
+            static from(input) {
+                if (input instanceof Fraction) return input;
+                const str = String(input).trim();
+                
+                // Handle fraction format "a/b"
+                if (str.includes('/')) {
+                    const parts = str.split('/');
+                    if (parts.length === 2) {
+                        const num = parseInt(parts[0]);
+                        const den = parseInt(parts[1]);
+                        if (!isNaN(num) && !isNaN(den) && den !== 0) {
+                            return new Fraction(num, den);
+                        } else {
+                            throw new Error("Invalid fraction format (a/b).");
+                        }
+                    }
+                }
+
+                // Handle decimal or integer format
+                const num = parseFloat(str);
+                if (!isNaN(num)) {
+                    if (num % 1 === 0) return new Fraction(num, 1);
+                    
+                    // Convert decimal to fraction (limited precision)
+                    const temp = str.split('.');
+                    if (temp.length === 2) {
+                        const len = temp[1].length;
+                        const den = Math.pow(10, len);
+                        // Rounding is crucial here to handle JS floating point issues
+                        const numInt = Math.round(num * den);
+                        return new Fraction(numInt, den);
+                    }
+                    return new Fraction(num, 1); 
+                }
+
+                throw new Error("Input is not a valid number or fraction.");
+            }
+            
+            static isValidFractionInput(input) {
+                try {
+                    Fraction.from(input);
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            }
+
+            static zero() { return new Fraction(0, 1); }
+            static one() { return new Fraction(1, 1); }
+
+            isZero() { return this.numerator === 0; }
+            equals(other) { other = Fraction.from(other); return this.numerator === other.numerator && this.denominator === other.denominator; }
+            isNegative() { return this.numerator * this.denominator < 0; }
+
+            add(other) {
+                other = Fraction.from(other);
+                const num = this.numerator * other.denominator + other.numerator * this.denominator;
+                const den = this.denominator * other.denominator;
+                return new Fraction(num, den);
+            }
+
+            subtract(other) {
+                other = Fraction.from(other);
+                return this.add(other.negate());
+            }
+
+            multiply(other) {
+                other = Fraction.from(other);
+                const num = this.numerator * other.numerator;
+                const den = this.denominator * other.denominator;
+                return new Fraction(num, den);
+            }
+
+            divide(other) {
+                other = Fraction.from(other);
+                if (other.isZero()) throw new Error("Division by zero.");
+                const num = this.numerator * other.denominator;
+                const den = this.denominator * other.numerator;
+                return new Fraction(num, den);
+            }
+
+            negate() {
+                return new Fraction(-this.numerator, this.denominator);
+            }
+
+            inverse() {
+                if (this.isZero()) throw new Error("Zero has no inverse.");
+                return new Fraction(this.denominator, this.numerator);
+            }
+
+            abs() {
+                return new Fraction(Math.abs(this.numerator), this.denominator);
+            }
+            
+            /**
+             * Returns the raw LaTeX representation.
+             */
+            toLatexNumerator(absolute = false) {
+                 let num = absolute ? Math.abs(this.numerator) : this.numerator;
+                 let den = this.denominator;
+
+                 if (den === 1) return String(num);
+                 if (num === 0) return '0';
+                 return `\\frac{${num}}{${den}}`;
+            }
+        }
+        
+        class Complex {
+            // Complex class kept for Eigen/Calculator, but simplified
+            constructor(real, imaginary = Fraction.zero()) {
+                this.real = Fraction.from(real);
+                this.imaginary = Fraction.from(imaginary);
+            }
+            
+            static zero() { return new Complex(Fraction.zero()); }
+            static one() { return new Complex(Fraction.one()); }
+            
+            isReal() { return this.imaginary.isZero(); }
+
+            multiply(other) {
+                other = other instanceof Complex ? other : new Complex(other);
+                const ac = this.real.multiply(other.real);
+                const bd = this.imaginary.multiply(other.imaginary);
+                const ad = this.real.multiply(other.imaginary);
+                const bc = this.imaginary.multiply(other.real);
+
+                return new Complex(
+                    ac.subtract(bd),
+                    ad.add(bc)
+                );
+            }
+            
+            divide(other) {
+                 other = other instanceof Complex ? other : new Complex(other);
+                const c2 = other.real.multiply(other.real);
+                const d2 = other.imaginary.multiply(other.imaginary);
+                const denominator = c2.add(d2);
+
+                if (denominator.isZero()) throw new Error("Division by zero (complex).");
+
+                const ac_bd = this.real.multiply(other.real).add(this.imaginary.multiply(other.imaginary));
+                const bc_ad = this.imaginary.multiply(other.real).subtract(this.real.multiply(other.imaginary));
+
+                return new Complex(
+                    ac_bd.divide(denominator),
+                    bc_ad.divide(denominator)
+                );
+            }
+            
+            negate() {
+                return new Complex(this.real.negate(), this.imaginary.negate());
+            }
+
+            abs() {
+                 return new Complex(this.real.abs(), this.imaginary.abs());
+            }
+            
+            toLatex() {
+                const imag = this.imaginary;
+                const real = this.real;
+                
+                if (imag.isZero()) return real.toLatexNumerator();
+                
+                const sign = imag.isNegative() ? ' - ' : ' + ';
+                let imagAbs = imag.abs();
+                
+                let realRaw = real.toLatexNumerator();
+                let imagRaw = imagAbs.toLatexNumerator();
+                
+                let imagTerm = imagAbs.equals(Fraction.one()) ? 'i' : `${imagRaw}i`;
+                
+                if (real.isZero()) {
+                    if (imagAbs.equals(Fraction.one())) return imag.isNegative() ? `-i` : `i`;
+                    return imag.isNegative() ? `-${imagTerm}` : imagTerm;
+                }
+                
+                return `${realRaw}${sign}${imagTerm}`;
+            }
+        }
+        
+        // --- Vector/Row Utility Functions (Kept for completeness) ---
+
+        function findLeastCommonDenominator(vector) {
+            let denominators = [];
+            vector.forEach(element => {
+                if (element instanceof Complex) {
+                    denominators.push(element.real.denominator);
+                    denominators.push(element.imaginary.denominator);
+                } else if (element instanceof Fraction) {
+                    denominators.push(element.denominator);
+                }
+            });
+            
+            denominators = denominators.filter(d => d > 1);
+
+            if (denominators.length === 0) return 1;
+
+            let result = 1;
+            const lcm = (a, b) => (a * b) / gcd(a, b);
+            denominators.forEach(d => result = lcm(result, d));
+            return result;
+        }
+
+        /**
+         * Clears all denominators in a row by multiplying by the LCM, 
+         * (Used for clean Step-by-Step display)
+         */
+        function clearRowDenominators(vector) {
+            let M = vector.map(e => (e instanceof Complex) ? new Complex(e.real, e.imaginary) : new Fraction(e.numerator, e.denominator));
+
+            const lcd = findLeastCommonDenominator(M);
+            const factor = Fraction.from(lcd);
+
+            let scaledRow = M.map(element => {
+                if (element instanceof Complex) {
+                    return element.multiply(new Complex(factor));
+                }
+                return element.multiply(factor);
+            });
+
+            let numerators = [];
+            scaledRow.forEach(element => {
+                 if (element instanceof Complex) {
+                    numerators.push(Math.abs(element.real.numerator));
+                    numerators.push(Math.abs(element.imaginary.numerator));
+                 } else {
+                    numerators.push(Math.abs(element.numerator));
+                 }
+            });
+            
+            let currentGCD = numerators.filter(n => n !== 0).reduce((a, b) => gcd(a, b), 0);
+            if (currentGCD === 0) currentGCD = 1;
+
+            const reductionFactor = Fraction.from(currentGCD);
+            
+            const simplifiedRow = scaledRow.map(element => {
+                if (element instanceof Complex) {
+                    return new Complex(element.real.divide(reductionFactor), element.imaginary.divide(reductionFactor));
+                }
+                return element.divide(reductionFactor);
+            });
+            
+            return simplifiedRow.map(element => {
+                if (element instanceof Complex) {
+                    return element; 
+                }
+                return new Fraction(element.numerator, 1);
+            });
+        }
+
+
+        // =======================================================
+        // State Management and Utilities
+        // =======================================================
+        let matrixRows = 3;
+        let matrixCols = 3;
+        let solutionSteps = [];
+        let currentStepIndex = 0;
+        
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let classes = '';
+            if (type === 'success') {
+                classes = 'bg-green-500 text-white';
+            } else if (type === 'error') {
+                classes = 'bg-red-500 text-white';
+            } else if (type === 'warning') {
+                classes = 'bg-yellow-500 text-gray-900';
+            } else {
+                classes = 'bg-gray-700 text-white';
+            }
+
+            toast.className = `toast ${classes}`;
+            toast.innerHTML = message;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => toast.classList.add('show'), 10);
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => container.removeChild(toast), 500);
+            }, 5000);
+        }
+
+        function displayError(message) {
+             showToast(message, 'error');
+        }
+
+        function clearInputs() {
+            document.querySelectorAll('#matrix-inputs input').forEach(input => input.value = '');
+            document.getElementById('solver-results').classList.add('hidden');
+            solutionSteps = [];
+            currentStepIndex = 0;
+            updateStepControlButtons();
+            document.getElementById('step-by-step-log').innerHTML = '';
+            document.getElementById('final-solution').innerHTML = '';
+            document.getElementById('system-classification').classList.add('hidden');
+            showToast('All solver inputs cleared.', 'info');
+        }
+        
+        function refreshMathJax() {
+            if (typeof MathJax !== 'undefined') {
+                MathJax.typesetPromise();
+            }
+            showToast('Equations refreshed.', 'success');
+        }
+
+        function handleInputValidation(input) {
+            const isValid = Fraction.isValidFractionInput(input.value);
+            input.classList.toggle('invalid-input', !isValid);
+        }
+
+        // =======================================================
+        // UI Rendering and Persistence Functions
+        // =======================================================
+
+        function generateMatrixInput() {
+            matrixRows = parseInt(document.getElementById('rows').value) || 3;
+            matrixCols = parseInt(document.getElementById('cols').value) || 3;
+
+            matrixRows = Math.max(2, matrixRows);
+            matrixCols = Math.max(2, matrixCols);
+            document.getElementById('rows').value = matrixRows;
+            document.getElementById('cols').value = matrixCols;
+
+            const container = document.getElementById('matrix-inputs');
+            container.innerHTML = '';
+            
+            const wrapper = document.getElementById('matrix-input-container').querySelector('.matrix-inputs-wrapper');
+             if(wrapper) wrapper.classList.add('augmented');
+
+            // Variable Naming Row (Displaying variable names above inputs)
+            const varRowDiv = document.createElement('div');
+            varRowDiv.className = 'flex space-x-4 mb-2 pt-2 border-t border-gray-200';
+            
+            const labelPlaceholder = document.createElement('div');
+            labelPlaceholder.className = 'row-label invisible';
+            varRowDiv.appendChild(labelPlaceholder);
+
+            for (let j = 0; j < matrixCols; j++) {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = `x${j + 1}`;
+                input.className = 'matrix-cell rounded-md border-gray-300 shadow-sm p-1 bg-gray-100 font-semibold text-sm';
+                input.id = `var_name_${j}`;
+                input.value = localStorage.getItem(`solver_var_name_${j}`) || `x${j + 1}`;
+                input.style.width = '80px';
+                input.style.minWidth = '50px';
+                input.addEventListener('input', saveMatrixToLocalStorage);
+                varRowDiv.appendChild(input);
+            }
+            const label = document.createElement('div');
+            label.className = 'w-[80px] text-center font-bold text-gray-500 flex items-center justify-center';
+            label.textContent = '=';
+            varRowDiv.appendChild(label);
+            container.appendChild(varRowDiv);
+
+            for (let i = 0; i < matrixRows; i++) {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'flex space-x-4';
+                
+                const rowLabel = document.createElement('div');
+                rowLabel.className = 'row-label';
+                rowLabel.textContent = `R${i + 1}`;
+                rowDiv.appendChild(rowLabel);
+
+                for (let j = 0; j < matrixCols; j++) {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.placeholder = `a${i + 1}${j + 1}`;
+                    input.className = 'matrix-cell rounded-md border-gray-300 shadow-sm p-1';
+                    input.id = `A${i}_${j}`;
+                    input.value = localStorage.getItem(`solver_matrix_${i}_${j}`) || '';
+                    input.addEventListener('input', (e) => {
+                        handleInputValidation(e.target);
+                        saveMatrixToLocalStorage();
+                    });
+                    handleInputValidation(input);
+                    rowDiv.appendChild(input);
+                }
+
+                const separator = document.createElement('div');
+                separator.className = 'w-[80px] h-full augmented-line';
+                rowDiv.appendChild(separator);
+
+                const constantInput = document.createElement('input');
+                constantInput.type = 'text';
+                constantInput.placeholder = 'b';
+                constantInput.className = 'matrix-cell rounded-md border-gray-300 shadow-sm p-1';
+                constantInput.id = `B${i}`;
+                constantInput.value = localStorage.getItem(`solver_constant_${i}`) || '';
+                constantInput.addEventListener('input', (e) => {
+                    handleInputValidation(e.target);
+                    saveMatrixToLocalStorage();
+                });
+                handleInputValidation(constantInput);
+                rowDiv.appendChild(constantInput);
+
+                container.appendChild(rowDiv);
+            }
+        }
+
+        function saveMatrixToLocalStorage() {
+            for (let i = 0; i < matrixRows; i++) {
+                for (let j = 0; j < matrixCols; j++) {
+                    localStorage.setItem(`solver_matrix_${i}_${j}`, document.getElementById(`A${i}_${j}`).value);
+                }
+                localStorage.setItem(`solver_constant_${i}`, document.getElementById(`B${i}`).value);
+            }
+            for (let j = 0; j < matrixCols; j++) {
+                localStorage.setItem(`solver_var_name_${j}`, document.getElementById(`var_name_${j}`).value);
+            }
+        }
+
+        /**
+         * Renders the matrix of Fraction/Complex objects as strings (integers only).
+         */
+        function renderMatrix(matrix, isAugmented = true, highlightRow = -1) {
+             if (matrix.length === 0 || matrix[0].length === 0) return '<div>[Empty Matrix]</div>';
+
+             const numCols = matrix[0].length;
+             const separatorCol = isAugmented ? numCols - 1 : -1;
+             
+             let tableBody = '';
+             matrix.forEach((row, i) => {
+                 const rowClass = i === highlightRow ? 'highlighted-row' : '';
+                 
+                 tableBody += `<tr class="matrix-row-container ${rowClass}">`;
+                 
+                 tableBody += `<td class="row-label">R${i + 1}</td>`;
+
+                 row.forEach((cell, j) => {
+                     let cellValue;
+                     if (cell instanceof Complex) {
+                          cellValue = "Complex Error"; 
+                     } else {
+                          // Display integer numerator value directly
+                          cellValue = cell.numerator;
+                     }
+                     
+                     let tdClasses = '';
+                     if (isAugmented && j === separatorCol) {
+                         tdClasses += ' augmented-separator';
+                     }
+                     
+                     tableBody += `<td class="${tdClasses}">
+                                         <div class="matrix-cell-content">
+                                             ${cellValue}
+                                         </div>
+                                     </td>`;
+                 });
+                 tableBody += '</tr>';
+             });
+
+             return `
+                <div class="matrix-display-container">
+                    <table class="matrix-table">
+                        <tbody>
+                            ${tableBody}
+                        </tbody>
+                    </table>
+                </div>`;
+        }
+
+
+        function updateStepControlButtons() {
+            document.getElementById('prev-step-btn').disabled = currentStepIndex <= 0;
+            document.getElementById('next-step-btn').disabled = currentStepIndex >= solutionSteps.length - 1;
+        }
+
+        function renderCurrentStep() {
+            if (solutionSteps.length === 0) return;
+
+            const step = solutionSteps[currentStepIndex];
+            const logDiv = document.getElementById('step-by-step-log');
+            
+            let operationIcon = '';
+            let pivotHighlight = '';
+
+            // Convert operation LaTeX to simplified HTML text
+            let operationText = step.operation
+                .replace('\\text{Initial Augmented Matrix}', 'Initial Matrix')
+                .replace('\\text{Reduced Row Echelon Form (RREF) - Final Result}', 'Final RREF (Gauss-Jordan)')
+                .replace('\\text{Row Echelon Form (REF) - Final Result}', 'Final REF (Gaussian)')
+                // Simplified text replacements for operations
+                .replace(/R_\{(\d+)\} \\leftrightarrow R_\{(\d+)\} \\quad \\text{\(Swap\)}/g, (match, r1, r2) => `Swap Row ${r1} <-> ${r2}`)
+                .replace(/R_\{(\d+)\} = R_\{(\d+)\} \\times ([^\s]+) \\quad \\text{\(Normalize\)}/g, (match, r1, r2, factor) => `Normalize R${r1} (x ${factor})`)
+                .replace(/R_\{(\d+)\} = R_\{(\d+)\} \s*([+-])\s* ([^\s]+) R_\{(\d+)\} \\quad \\text{\(Eliminate\)}/g, (match, r1, r2, sign, factor, r3) => {
+                    const op = sign.trim() === '+' ? ' + ' : ' - ';
+                    return `R${r1} = R${r2} ${op} ${factor} * R${r3}`;
+                });
+            
+            // Clean up LaTeX commands
+            operationText = operationText.replace(/\\frac\{([^\}]+)\}\{([^\}]+)\}/g, '($1/$2)')
+                                         .replace(/\\text\{/g, '').replace(/\\}/g, '')
+                                         .replace(/\\mathbf\{/g, '').replace(/\}/g, '')
+                                         .replace(/\$/g, '');
+            
+
+            if (step.operation.includes('Initial')) {
+                 operationIcon = '<i class="fas fa-table text-indigo-500 text-3xl"></i>';
+                 pivotHighlight = 'Initial State';
+            } else if (step.operation.includes('\\leftrightarrow')) {
+                 operationIcon = '<i class="fas fa-exchange-alt text-yellow-500 text-3xl"></i>';
+                 pivotHighlight = 'Row Swap';
+            } else if (step.operation.includes('\\times')) {
+                 operationIcon = '<i class="fas fa-divide text-green-500 text-3xl"></i>';
+                 pivotHighlight = 'Normalization';
+            } else if (step.operation.includes('+') || step.operation.includes('-')) {
+                 operationIcon = '<i class="fas fa-minus-circle text-red-500 text-3xl"></i>';
+                 pivotHighlight = 'Elimination';
+            } else if (step.operation.includes('RREF') || step.operation.includes('REF')) {
+                 operationIcon = '<i class="fas fa-flag-checkered text-purple-500 text-3xl"></i>';
+                 pivotHighlight = 'Final Result';
+            }
+            
+            if (step.pivot) {
+                 pivotHighlight = `Pivot (A[${step.pivot.row + 1}, ${step.pivot.col + 1}])`;
+            }
+
+            const operationCard = `
+                <div class="operation-summary flex flex-col justify-center items-center h-full bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <div class="mb-3">${operationIcon}</div>
+                    <p class="font-bold text-lg text-center mb-2 text-indigo-800">${pivotHighlight}</p>
+                    <div class="operation-text text-center text-gray-800">
+                        ${operationText}
+                    </div>
+                </div>
+            `;
+            
+            // Create a display matrix where denominators of each row are cleared
+            const M_display = step.matrix.map(row => clearRowDenominators(row));
+            const matrixDisplay = renderMatrix(M_display, true, step.operationRow);
+
+
+            const content = `<div class="step-log-grid">
+                            ${operationCard}
+                            <div class="flex items-center justify-center">
+                                ${matrixDisplay}
+                            </div>
+                           </div>`;
+
+            logDiv.innerHTML = content;
+
+            updateStepControlButtons();
+
+            if (currentStepIndex === solutionSteps.length - 1) {
+                updateDisplayFinalSolution(step.matrix, step.classification, step.isREF);
+                // Simple text for classification
+                let classificationMessage = step.classification.message.replace(/\$.*?\$/g, '').replace(/\\text\{/g, '').replace(/\\frac\{/g, '').replace(/\\(.*?)\{/g, '').replace(/\}/g, '');
+                document.getElementById('system-classification').textContent = classificationMessage;
+                const classificationDiv = document.getElementById('system-classification');
+                classificationDiv.classList.remove('hidden', 'bg-red-100', 'border-red-500', 'bg-yellow-100', 'border-yellow-500', 'bg-blue-100', 'border-blue-500');
+                classificationDiv.classList.add('border-l-4', 'p-4');
+                classificationDiv.classList.add(step.classification.colorClass);
+            } else {
+                document.getElementById('final-solution').innerHTML = '';
+                document.getElementById('system-classification').classList.add('hidden');
+            }
+            
+            refreshMathJax();
+        }
+
+        function showNextStep() {
+            if (currentStepIndex < solutionSteps.length - 1) {
+                currentStepIndex++;
+                renderCurrentStep();
+            }
+        }
+
+        function showPrevStep() {
+            if (currentStepIndex > 0) {
+                currentStepIndex--;
+                renderCurrentStep();
+            }
+        }
+        
+        // =======================================================
+        // Gauss Logic (Gaussian Elimination)
+        // =======================================================
+        // NOTE: This function is simplified to only perform forward elimination to REF. 
+        // It relies on updateDisplayFinalSolution for back substitution logic.
+        function solveGaussian() {
+             const result = getAugmentedMatrix();
+            if (!result) return; // FIX: If input failed, stop here.
+
+            solutionSteps = [];
+            currentStepIndex = 0;
+            let M = result.matrix.map(row => row.map(f => f.multiply(Fraction.one())));
+            const numRows = M.length;
+            const numCols = M[0].length;
+            
+            solutionSteps.push({
+                matrix: M.map(row => row.map(f => f.multiply(Fraction.one()))),
+                operation: '\\text{Initial Augmented Matrix}',
+                pivot: null,
+                operationRow: -1,
+                isREF: false
+            });
+
+            let pivotRow = 0;
+            let pivotCol = 0;
+
+            // Forward Elimination (to Row Echelon Form - REF)
+            while (pivotRow < numRows && pivotCol < numCols - 1) {
+                // Find pivot row (first non-zero entry in or below the current pivot position)
+                let i = pivotRow;
+                while (i < numRows && M[i][pivotCol].isZero()) {
+                    i++;
+                }
+
+                if (i < numRows) {
+                    // Pivot found at M[i][pivotCol]
+                    
+                    // 1. Swap rows if necessary
+                    if (i !== pivotRow) {
+                        [M[pivotRow], M[i]] = [M[i], M[pivotRow]];
+                        solutionSteps.push({
+                            matrix: M.map(row => row.map(f => f.multiply(Fraction.one()))),
+                            operation: `R_{${pivotRow + 1}} \\leftrightarrow R_{${i + 1}} \\quad \\text{(Swap)}`,
+                            pivot: { row: pivotRow, col: pivotCol },
+                            operationRow: pivotRow
+                        });
+                    }
+
+                    // 2. Normalize the pivot row (make pivot element 1)
+                    let pivotValue = M[pivotRow][pivotCol];
+                    if (!pivotValue.isZero() && !pivotValue.equals(Fraction.one())) {
+                        const inversePivot = pivotValue.inverse();
+                        for (let j = pivotCol; j < numCols; j++) {
+                            M[pivotRow][j] = M[pivotRow][j].multiply(inversePivot);
+                        }
+                        solutionSteps.push({
+                            matrix: M.map(row => row.map(f => f.multiply(Fraction.one()))),
+                            operation: `R_{${pivotRow + 1}} = R_{${pivotRow + 1}} \\times ${inversePivot.toLatexNumerator()} \\quad \\text{(Normalize)}`,
+                            pivot: { row: pivotRow, col: pivotCol },
+                            operationRow: pivotRow
+                        });
+                    }
+
+                    // 3. Eliminate entries BELOW the pivot
+                    for (let i = pivotRow + 1; i < numRows; i++) {
+                        let factor = M[i][pivotCol];
+                        if (!factor.isZero()) {
+                            // FIX: Use subtraction directly for elimination, guaranteeing zeroing the entry
+                            for (let j = pivotCol; j < numCols; j++) {
+                                // M[i][j] = M[i][j] - factor * M[pivotRow][j]
+                                const term = factor.multiply(M[pivotRow][j]);
+                                M[i][j] = M[i][j].subtract(term);
+                            }
+                            
+                            // Check the sign of the original factor for operation display
+                            let sign = factor.isNegative() ? ' + ' : ' - ';
+                            let absFactor = factor.abs().toLatexNumerator();
+                            
+                            solutionSteps.push({
+                                matrix: M.map(row => row.map(f => f.multiply(Fraction.one()))),
+                                operation: `R_{${i + 1}} = R_{${i + 1}} ${sign} ${absFactor} R_{${pivotRow + 1}} \\quad \\text{(Eliminate)}`,
+                                pivot: { row: pivotRow, col: pivotCol },
+                                operationRow: i
+                            });
+                        }
+                    }
+
+                    pivotRow++;
+                }
+                pivotCol++; // Move to the next column
+            }
+
+            // Final state and classification
+            const classification = classifySystem(M);
+            solutionSteps.push({
+                matrix: M.map(row => row.map(f => f.multiply(Fraction.one()))),
+                operation: '\\text{Row Echelon Form (REF) - Final Result}',
+                pivot: null,
+                operationRow: -1,
+                classification: classification,
+                isREF: true // Mark as REF
+            });
+
+            document.getElementById('solver-results').classList.remove('hidden');
+            renderCurrentStep();
+        }
+
+        // =======================================================
+        // Gauss-Jordan Logic (RREF)
+        // =======================================================
+        // NOTE: This function calculates the RREF (Reduced Row Echelon Form)
+        function solveSystem() {
+            const result = getAugmentedMatrix();
+            if (!result) return; // FIX: If input failed, stop here.
+
+            solutionSteps = [];
+            currentStepIndex = 0;
+            let M = result.matrix.map(row => row.map(f => f.multiply(Fraction.one())));
+            const numRows = M.length;
+            const numCols = M[0].length;
+
+            solutionSteps.push({
+                matrix: M.map(row => row.map(f => f.multiply(Fraction.one()))),
+                operation: '\\text{Initial Augmented Matrix}',
+                pivot: null,
+                operationRow: -1,
+                isREF: false // Not REF
+            });
+
+            let pivotRow = 0;
+            let pivotCol = 0;
+
+            while (pivotRow < numRows && pivotCol < numCols - 1) {
+                // Find pivot row (first non-zero entry in or below the current pivot position)
+                let i = pivotRow;
+                while (i < numRows && M[i][pivotCol].isZero()) {
+                    i++;
+                }
+
+                if (i < numRows) {
+                    // Pivot found at M[i][pivotCol]
+
+                    if (i !== pivotRow) {
+                        [M[pivotRow], M[i]] = [M[i], M[pivotRow]];
+                        solutionSteps.push({
+                            matrix: M.map(row => row.map(f => f.multiply(Fraction.one()))),
+                            operation: `R_{${pivotRow + 1}} \\leftrightarrow R_{${i + 1}} \\quad \\text{(Swap)}`,
+                            pivot: { row: pivotRow, col: pivotCol },
+                            operationRow: pivotRow
+                        });
+                    }
+
+                    let pivotValue = M[pivotRow][pivotCol];
+                    if (!pivotValue.isZero() && !pivotValue.equals(Fraction.one())) {
+                        const inversePivot = pivotValue.inverse();
+                        for (let j = pivotCol; j < numCols; j++) {
+                            M[pivotRow][j] = M[pivotRow][j].multiply(inversePivot);
+                        }
+                        solutionSteps.push({
+                            matrix: M.map(row => row.map(f => f.multiply(Fraction.one()))),
+                            operation: `R_{${pivotRow + 1}} = R_{${pivotRow + 1}} \\times ${inversePivot.toLatexNumerator()} \\quad \\text{(Normalize)}`,
+                            pivot: { row: pivotRow, col: pivotCol },
+                            operationRow: pivotRow
+                        });
+                    }
+
+                    // Elimination ABOVE AND BELOW the pivot
+                    for (let i = 0; i < numRows; i++) {
+                        if (i !== pivotRow) {
+                            let factor = M[i][pivotCol];
+                            if (!factor.isZero()) {
+                                // FIX: Use subtraction directly for elimination, guaranteeing zeroing the entry
+                                for (let j = pivotCol; j < numCols; j++) {
+                                    // M[i][j] = M[i][j] - factor * M[pivotRow][j]
+                                    const term = factor.multiply(M[pivotRow][j]);
+                                    M[i][j] = M[i][j].subtract(term);
+                                }
+                                
+                                // Check the sign of the original factor for operation display
+                                let sign = factor.isNegative() ? ' + ' : ' - ';
+                                let absFactor = factor.abs().toLatexNumerator();
+                                
+                                solutionSteps.push({
+                                    matrix: M.map(row => row.map(f => f.multiply(Fraction.one()))),
+                                    operation: `R_{${i + 1}} = R_{${i + 1}} ${sign} ${absFactor} R_{${pivotRow + 1}} \\quad \\text{(Eliminate)}`,
+                                    pivot: { row: pivotRow, col: pivotCol },
+                                    operationRow: i
+                                });
+                            }
+                        }
+                    }
+
+                    pivotRow++;
+                }
+                pivotCol++; // Move to the next column
+            }
+
+            const classification = classifySystem(M);
+            solutionSteps.push({
+                matrix: M.map(row => row.map(f => f.multiply(Fraction.one()))),
+                operation: '\\text{Reduced Row Echelon Form (RREF) - Final Result}',
+                pivot: null,
+                operationRow: -1,
+                classification: classification,
+                isREF: false // Not REF (it's RREF)
+            });
+
+            document.getElementById('solver-results').classList.remove('hidden');
+            renderCurrentStep();
+        }
+
+        // =======================================================
+        // Main Trigger
+        // =======================================================
+
+        function startSolution() {
+            const method = document.getElementById('solver-method').value;
+            if (method === 'gauss_jordan') {
+                solveSystem();
+            } else if (method === 'gaussian') {
+                solveGaussian();
+            }
+        }
+        
+        /**
+         * Extracts the augmented matrix and converts all values to Fraction objects.
+         * FIX: Treats empty input as 0 and reports format errors clearly.
+         * @returns {{matrix: Fraction[][], varNames: string[]} | null}
+         */
+        function getAugmentedMatrix() {
+            let matrix = [];
+            const varNames = [];
+            let hasInvalidFormat = false;
+
+            for (let j = 0; j < matrixCols; j++) {
+                varNames.push(document.getElementById(`var_name_${j}`).value.trim() || `x${j + 1}`);
+            }
+
+            for (let i = 0; i < matrixRows; i++) {
+                const row = [];
+                // Coefficients (A) + Constants (B)
+                for (let j = 0; j < matrixCols + 1; j++) {
+                    const id = j < matrixCols ? `A${i}_${j}` : `B${i}`;
+                    const input = document.getElementById(id);
+                    const inputValue = input.value.trim();
+                    
+                    if (!inputValue) {
+                        // Treat empty input as 0 to allow the solver to run
+                        row.push(Fraction.zero());
+                        input.classList.remove('invalid-input');
+                    } else {
+                        try {
+                            const fraction = Fraction.from(inputValue);
+                            row.push(fraction);
+                            input.classList.remove('invalid-input');
+                        } catch (e) {
+                            // Mark cell clearly and flag error
+                            input.classList.add('invalid-input');
+                            hasInvalidFormat = true;
+                            row.push(Fraction.zero()); // Use placeholder to continue loop
+                        }
+                    }
+                }
+                matrix.push(row);
+            }
+
+            if (hasInvalidFormat) {
+                displayError("Input Error: Please ensure all highlighted cells contain valid numbers or fractions (e.g., 5 or 1/2).");
+                return null;
+            }
+            
+            return { matrix, varNames };
+        }
+
+
+        /**
+         * Displays the final solution as a simple list of equations (x = value)
+         * NOTE: This logic performs the back substitution internally if REF mode is chosen
+         * for UNQIUE solutions only, otherwise it relies on the matrix for expressions.
+         */
+        function updateDisplayFinalSolution(matrix, classification, isREF = false) {
+            const solutionDiv = document.getElementById('final-solution');
+            solutionDiv.innerHTML = '';
+
+            const varNames = [];
+            for (let j = 0; j < matrixCols; j++) {
+                varNames.push(document.getElementById(`var_name_${j}`).value.trim() || `x_{${j + 1}}`);
+            }
+            
+            if (classification.message.includes("No solution")) return;
+
+            const numVars = matrix[0].length - 1;
+            const B_col = numVars;
+            
+            let pivotCols = [];
+            let freeCols = [];
+            let pivotRow = 0;
+            
+            // 1. Identify pivot and free variables
+            for (let j = 0; j < numVars; j++) {
+                let isPivot = false;
+                if (pivotRow < matrix.length && !matrix[pivotRow][j].isZero()) {
+                    let isLeadingEntry = true;
+                    // Check if it's the first non-zero entry in its row (simplified pivot check for RREF/REF)
+                    for (let k = 0; k < j; k++) {
+                         if (!matrix[pivotRow][k].isZero()) {
+                            isLeadingEntry = false;
+                            break;
+                         }
+                    }
+
+                    if (isLeadingEntry) {
+                        pivotCols.push({ col: j, row: pivotRow });
+                        pivotRow++;
+                        isPivot = true;
+                    }
+                }
+                if (!isPivot) {
+                    freeCols.push(j);
+                }
+            }
+            
+            let solutionValues = Array(numVars).fill(null);
+            
+            // 2. Perform Back Substitution if REF was used AND there's a UNIQUE solution
+            let matrixForDisplay = matrix.map(row => row.slice()); // Default to matrix values
+            
+            if (isREF && freeCols.length === 0) {
+                 // Only run back substitution for the unique solution case in REF
+                for (let i = pivotCols.length - 1; i >= 0; i--) {
+                    let p_info = pivotCols[i];
+                    let row = p_info.row;
+                    let pivotCol = p_info.col;
+                    
+                    let b = matrixForDisplay[row][B_col];
+
+                    for (let j = pivotCol + 1; j < numVars; j++) {
+                        let coeff = matrixForDisplay[row][j];
+                        if (!coeff.isZero() && solutionValues[j] !== null) {
+                            b = b.subtract(coeff.multiply(solutionValues[j]));
+                        }
+                    }
+                    
+                    let pivotVal = matrixForDisplay[row][pivotCol];
+                    if (!pivotVal.isZero()) {
+                        solutionValues[pivotCol] = b.divide(pivotVal);
+                        // Update the matrix value for consistent display source
+                        matrixForDisplay[row][B_col] = solutionValues[pivotCol];
+                        // Normalize the pivot row to [..., 1, value] for final matrix display
+                        for(let j = 0; j < numVars + 1; j++) {
+                            matrixForDisplay[row][j] = matrixForDisplay[row][j].divide(pivotVal);
+                        }
+                    }
+                }
+            }
+            
+            // --- Solution Display ---
+
+            let solutionHtml = `<h3 class="text-xl font-semibold text-gray-800 mb-3">Final Solution:</h3>`;
+            solutionHtml += `<ul class="solution-list">`;
+            
+            const freeVarSymbols = ['t', 's', 'r', 'u', 'v', 'w'].slice(0, freeCols.length);
+
+            if (freeCols.length === 0) {
+                 // Unique Solution
+                 pivotCols.forEach(p_info => {
+                      const varName = varNames[p_info.col];
+                      const value = matrixForDisplay[p_info.row][B_col].toLatexNumerator();
+                      solutionHtml += `<li><span class="font-bold">${varName}</span> = $$${value}$$</li>`;
+                 });
+                 
+            } else {
+                 // Infinite Solutions (Always rely on RREF-style expressions from the matrix)
+                 
+                 // 2. Define free variables
+                 freeCols.forEach((f_idx, idx) => {
+                     const varName = varNames[f_idx];
+                     const symbol = freeVarSymbols[idx];
+                     solutionHtml += `<li class="text-yellow-700"><span class="font-bold">${varName}</span> = $${symbol}$ (Free Parameter)</li>`;
+                 });
+                 
+                 // 3. Express pivot variables in terms of free variables
+                 pivotCols.forEach(p_info => {
+                     const varName = varNames[p_info.col];
+                     const row = p_info.row;
+                     
+                     // We need the RREF coefficients here (matrix[row][f_idx])
+                     let constant = matrix[row][B_col].toLatexNumerator();
+                     let expression = constant;
+                     
+                     freeCols.forEach((f_idx, idx) => {
+                         const symbol = freeVarSymbols[idx];
+                         // The coefficient in RREF is negated when moved to the right side
+                         const coeff = matrix[row][f_idx].negate();
+                         
+                         if (!coeff.isZero()) {
+                              const sign = coeff.isNegative() ? ' - ' : ' + ';
+                              const absCoeff = coeff.abs().toLatexNumerator();
+                              
+                              // Check if the constant term is zero to simplify the expression start
+                              if (expression === '0' && sign.trim() === '+') {
+                                  expression = `${absCoeff} ${symbol}`;
+                              } else if (expression === '0' && sign.trim() === '-') {
+                                  expression = `-${absCoeff} ${symbol}`;
+                              } else if (expression === '0') {
+                                  expression = `${absCoeff} ${symbol}`;
+                              }
+                              else {
+                                  expression += `${sign} ${absCoeff} ${symbol}`;
+                              }
+                         }
+                     });
+                     
+                     solutionHtml += `<li><span class="font-bold">${varName}</span> = $$${expression}$$</li>`;
+                 });
+            }
+
+            solutionHtml += `</ul>`;
+            solutionDiv.innerHTML = solutionHtml;
+            
+            // Re-typeset MathJax for the final solution list
+            if (typeof MathJax !== 'undefined') MathJax.typesetPromise([solutionDiv]);
+        }
+
+        function generateRandomMatrix() {
+            for (let i = 0; i < matrixRows; i++) {
+                for (let j = 0; j < matrixCols; j++) {
+                    document.getElementById(`A${i}_${j}`).value = Math.floor(Math.random() * 10) - 5;
+                }
+                document.getElementById(`B${i}`).value = Math.floor(Math.random() * 10) - 5;
+            }
+            saveMatrixToLocalStorage();
+            document.getElementById('solver-results').classList.add('hidden');
+            showToast('Random matrix generated.', 'success');
+        }
+
+        function classifySystem(matrix) {
+             const numRows = matrix.length;
+            const numVars = matrix[0].length - 1;
+            let RREF_rank = 0;
+            let inconsistent = false;
+
+            for (let i = 0; i < numRows; i++) {
+                let isZeroRowCoeff = true;
+                let hasLeadingOne = false;
+                for (let j = 0; j < numVars; j++) {
+                    if (!matrix[i][j].isZero()) {
+                        isZeroRowCoeff = false;
+                        // Check if this row contributes to the rank (has a leading entry)
+                        hasLeadingOne = true;
+                        break; // Found a non-zero coefficient
+                    }
+                }
+
+                if (isZeroRowCoeff) {
+                    if (!matrix[i][numVars].isZero()) {
+                        inconsistent = true;
+                        break;
+                    }
+                } 
+                
+                // Simplified rank check: count non-zero rows after row operations
+                if (hasLeadingOne) {
+                    // Check if it's truly a new pivot row for calculating rank accurately
+                    let isNewPivot = true;
+                    if (i > 0) {
+                        // Check if the pivot column index is strictly greater than the previous one
+                        let prevPivotCol = -1;
+                        for(let k = 0; k < numVars; k++) {
+                            if (!matrix[i-1][k].isZero()) {
+                                prevPivotCol = k;
+                                break;
+                            }
+                        }
+                        let currentPivotCol = -1;
+                         for(let k = 0; k < numVars; k++) {
+                            if (!matrix[i][k].isZero()) {
+                                currentPivotCol = k;
+                                break;
+                            }
+                        }
+                        if (currentPivotCol <= prevPivotCol) {
+                            isNewPivot = false;
+                        }
+                    }
+                    
+                    if (isNewPivot) {
+                         RREF_rank++;
+                    }
+                }
+            }
+
+            if (inconsistent) {
+                return {
+                    message: "Inconsistent System: No solution exists (due to a contradiction row $0 = \\text{non-zero}$).",
+                    colorClass: 'bg-red-100 border-red-500 text-red-700'
+                };
+            } else if (RREF_rank === numVars) {
+                return {
+                    message: "Consistent System: Unique Solution (Rank equals the number of variables).",
+                    colorClass: 'bg-blue-100 border-blue-500 text-blue-700'
+                };
+            } else {
+                const freeVars = numVars - RREF_rank;
+                return {
+                    message: `Consistent System: Infinitely Many Solutions (There are ${freeVars} free variable(s)).`,
+                    colorClass: 'bg-yellow-100 border-yellow-500 text-yellow-700'
+                };
+            }
+        }
+
+        // =======================================================
+        // Initialization & Export
+        // =======================================================
+
+        function exportReport() {
+            console.log(`Generating report for Equation Solver...`);
+            window.print();
+        }
+
+        window.onload = function() {
+            document.body.classList.add('light');
+            generateMatrixInput();
+            
+            const solverView = document.getElementById('solver-view');
+            solverView.classList.remove('hidden');
+            solverView.style.opacity = '1';
+            
+            if (window.firebaseInit) {
+                window.firebaseInit();
+            }
+            window.exportReport = exportReport;
+            window.handleInputValidation = handleInputValidation;
+            window.refreshMathJax = refreshMathJax;
+            window.startSolution = startSolution; // Expose the unified start function
+        };
+    </script>
+</body>
+</html>
