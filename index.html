@@ -1,22 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gauss Solver (Final Version)</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- MathJax is used ONLY for the final, exact fractional answer. -->
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <!-- COPYRIGHT NOTICE -->
+    <meta name="author" content="كليه الحاسبات والمعلومات جامعة المنصورة">
+    <meta name="copyright" content="© 2025 كليه الحاسبات والمعلومات جامعة المنصورة. جميع الحقوق محفوظة.">
+    <!-- END COPYRIGHT NOTICE -->
+    
+    <!-- Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- MathJax is used ONLY for the final, exact fractional answer. --><script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-
+    
     <style>
         /* CSS retained for the Solver view, Matrix inputs, and display */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Cairo:wght@400;700;900&display=swap');
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Cairo', sans-serif; /* Using Cairo for Arabic UI */
             background-color: #f7f9fb;
             color: #1f2937;
             transition: background-color 0.5s, color 0.5s;
@@ -35,14 +37,14 @@
             transition: background-color 0.3s;
         }
         
-        /* RESPONSIVE FIX: Matrix Cell Size */
+        /* RESPONSIVE FIX: Matrix Cell Size (Ensuring maximum flexibility) */
         .matrix-cell {
-            width: 60px; /* Reduced base width for small screens */
-            max-width: 80px; /* Max width for larger screens */
+            width: 45px; /* Base width for very small mobile screens */
+            max-width: 80px; 
             text-align: center;
             padding: 4px 2px;
             line-height: 1.2;
-            font-size: 0.9rem;
+            font-size: 0.8rem; /* Smaller font for tighter fit on mobile */
             height: 35px;
             border-radius: 6px;
             transition: all 0.3s;
@@ -51,7 +53,8 @@
         }
         @media (min-width: 640px) { /* Adjust width on small screens and up */
             .matrix-cell {
-                width: 80px;
+                width: 70px; 
+                font-size: 0.9rem;
             }
         }
         .matrix-cell:focus {
@@ -67,10 +70,11 @@
         /* RESPONSIVE FIX: Matrix Inputs Wrapper for Horizontal Scroll */
         .matrix-inputs-wrapper {
             position: relative;
-            display: block; /* Change to block for better mobile flow */
+            display: block; 
             padding: 10px 15px;
-            overflow-x: auto; /* Ensure horizontal scroll on overflow */
+            overflow-x: auto; 
             padding-bottom: 20px; 
+            width: 100%; 
         }
         /* Ensure brackets stay visible even with scroll */
         .matrix-inputs-wrapper::before,
@@ -200,29 +204,167 @@
             flex-wrap: wrap; 
         }
 
+        /* Tooltip Styling */
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+            margin-right: 8px; /* Spacing for the icon */
+        }
+
+        .tooltip-icon {
+            cursor: pointer;
+            color: #4f46e5;
+            transition: color 0.2s;
+        }
+
+        .tooltip-box {
+            visibility: hidden;
+            background-color: #1f2937; /* Dark background */
+            color: #ffffff;
+            text-align: right;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 100;
+            bottom: 125%; /* Position above the label */
+            right: -100px; /* Adjust right position for R-to-L */
+            width: 250px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        /* Show the tooltip box when hovering over the container */
+        .tooltip-container:hover .tooltip-box {
+            visibility: visible;
+            opacity: 1;
+        }
+        /* Arrow pointing to the element */
+        .tooltip-box::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            right: 100px;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #1f2937 transparent transparent transparent;
+        }
+        /* Fix positioning for small screens */
+        @media (max-width: 640px) {
+            .tooltip-box {
+                bottom: 110%; 
+                right: 50%;
+                transform: translateX(50%);
+            }
+            .tooltip-box::after {
+                right: 50%;
+                transform: translateX(50%);
+            }
+        }
+        
+        /* Tour Modal Styling */
+        .tour-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5); /* Lighter overlay to see elements */
+            z-index: 200;
+            display: none; /* Controlled by JS, but will be set to 'flex' */
+            
+            /* NEW: Position the content area Top-Right for RTL */
+            align-items: flex-start;
+            justify-content: flex-start; 
+            padding: 20px;
+        }
+        .tour-content {
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 300px; /* Reduced width for less obstruction */
+            text-align: right;
+            box-shadow: 0 0 30px rgba(79, 70, 229, 0.5);
+            animation: zoomIn 0.3s ease-out;
+            cursor: pointer; 
+            margin-top: 10px;
+            margin-right: 10px;
+            /* Force content to top right corner */
+            align-self: flex-start;
+            justify-self: flex-end;
+            margin-left: auto; 
+        }
+        @keyframes zoomIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .cartoon-icon {
+            font-size: 3rem;
+            color: #10b981; /* Emerald-500 */
+            margin-right: 15px; /* Adjust margin for RTL */
+        }
+        .highlight-tour {
+            box-shadow: 0 0 0 5px rgba(255, 230, 0, 0.8), 0 0 20px rgba(255, 200, 0, 1);
+            z-index: 201; 
+            position: relative;
+            transition: box-shadow 0.3s ease-out;
+        }
+        /* Full width buttons in tour modal */
+        #tour-button {
+            width: 100%;
+        }
     </style>
 </head>
-<body class="light">
+<body class="light" dir="rtl">
     
     <div id="toast-container"></div>
+
+    <!-- Tour Modal -->
+    <div id="tour-modal" class="tour-modal">
+        <!-- Tour Content Box (Top Right for RTL) -->
+        <div class="tour-content" onclick="nextTourStep()">
+            <div class="flex items-center justify-end mb-4 border-b pb-3">
+                <p class="text-xl font-bold text-gray-800" id="cartoon-name">المرشد زكي</p>
+                <i class="fas fa-feather-alt cartoon-icon text-yellow-600"></i> <!-- Parrot Icon -->
+            </div>
+            <p id="tour-text" class="text-gray-700 mb-6 leading-loose">مرحباً! أنا زكي، بغبغان الجبر الخطي! سأساعدك في التعرف على وظيفة كل جزء في البرنامج.</p>
+            <button id="tour-button" onclick="nextTourStep()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg w-full font-semibold hover:bg-indigo-700 transition">موافق / التالي</button>
+        </div>
+    </div>
+    <!-- End Tour Modal -->
     
     <div id="app" class="max-w-5xl mx-auto rounded-xl p-6 md:p-10">
 
         <!-- Header -->
         <div class="flex justify-between items-center mb-6 border-b pb-2">
             <h1 class="text-3xl font-extrabold text-indigo-700 text-center sm:text-left">
-                <i class="fas fa-square-root-alt mr-2"></i> Equation Solver (Gauss / Gauss-Jordan)
+                <i class="fas fa-square-root-alt ml-2"></i> مُحلل المعادلات الخطية (Gauss / Gauss-Jordan)
             </h1>
         </div>
 
         <!-- 1. Equation Solver View (Gauss-Jordan) -->
         <div id="solver-view" class="transition-opacity duration-500">
             <div class="glass-panel p-4 sm:p-6 rounded-lg mb-8 shadow-md">
-                <h2 class="text-xl font-semibold text-indigo-800 mb-4 border-b pb-2 text-center">System Setup (Enter numbers or fractions like 1/2)</h2>
+                <h2 class="text-xl font-semibold text-indigo-800 mb-4 border-b pb-2 text-center">
+                    إعداد النظام (دخل أرقام أو كسور زي 1/2)
+                </h2>
                 
                 <!-- Solver Method Selector -->
-                <div class="flex justify-center mb-6">
-                    <label class="block text-gray-700 w-full max-w-xs">Select Solution Method:
+                <div class="flex justify-center mb-6" id="tour-step-1">
+                    <label class="block text-gray-700 w-full max-w-xs relative">
+                        <span class="flex items-center justify-end">
+                            اختار طريقة الحل:
+                            <span class="tooltip-container">
+                                <i class="fas fa-question-circle tooltip-icon"></i>
+                                <span class="tooltip-box">
+                                    **اختيار طريقة الحل:**<br>
+                                    1. **Gauss-Jordan (RREF):** بيطلعلك الحل النهائي والمبسط مباشرة. <br>
+                                    2. **Gaussian (REF):** بيقف عند المرحلة المتوسطة وبيحتاج تعمل "تعويض خلفي" عشان تطلع الحل.
+                                </span>
+                            </span>
+                        </span>
                         <select id="solver-method" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-white">
                             <option value="gauss_jordan">Gauss-Jordan Elimination (RREF)</option>
                             <option value="gaussian">Gaussian Elimination (REF)</option>
@@ -231,15 +373,33 @@
                 </div>
                 
                 <!-- Matrix Size Inputs (Responsive layout) -->
-                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 justify-center items-center">
-                    <label class="block text-gray-700 w-full sm:w-auto">Rows (Equations):
+                <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 justify-center items-center" id="tour-step-2">
+                    <label class="block text-gray-700 w-full sm:w-auto relative">
+                         <span class="flex items-center justify-end">
+                            صفوف (المعادلات):
+                             <span class="tooltip-container">
+                                <i class="fas fa-question-circle tooltip-icon"></i>
+                                <span class="tooltip-box">
+                                    **عدد الصفوف:** تحدد عدد المعادلات اللي هتحلها في النظام. لازم يكون 2 أو أكتر.
+                                </span>
+                            </span>
+                        </span>
                         <input type="number" id="rows" value="3" min="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-white" onchange="generateMatrixInput()">
                     </label>
-                    <label class="block text-gray-700 w-full sm:w-auto">Columns (Variables):
+                    <label class="block text-gray-700 w-full sm:w-auto relative">
+                         <span class="flex items-center justify-end">
+                            أعمدة (المتغيرات):
+                            <span class="tooltip-container">
+                                <i class="fas fa-question-circle tooltip-icon"></i>
+                                <span class="tooltip-box">
+                                    **عدد الأعمدة:** تحدد عدد المتغيرات (x1, x2, x3, إلخ) اللي هتبحث عن قيمها.
+                                </span>
+                            </span>
+                        </span>
                         <input type="number" id="cols" value="3" min="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-white" onchange="generateMatrixInput()">
                     </label>
                     <button onclick="generateMatrixInput()" class="bg-indigo-500 text-white px-4 py-2 rounded-xl mt-4 sm:mt-0 shadow-md hover:bg-indigo-600 transition w-full sm:w-auto">
-                        Apply Size
+                        تطبيق الحجم
                     </button>
                 </div>
             </div>
@@ -247,7 +407,15 @@
             <!-- Matrix Input & Controls (Grid stacks on mobile) -->
             <div class="grid md:grid-cols-2 gap-8">
                  <div id="matrix-input-container" class="mb-8 p-4 border rounded-xl shadow-lg glass-panel transition-all overflow-x-auto">
-                    <h3 class="text-lg font-bold text-gray-700 mb-4 text-center">Enter Augmented Matrix Coefficients (A | B)</h3>
+                    <h3 class="text-lg font-bold text-gray-700 mb-4 text-center">
+                        دخل معاملات المصفوفة (A | B)
+                        <span class="tooltip-container">
+                            <i class="fas fa-question-circle tooltip-icon"></i>
+                            <span class="tooltip-box">
+                                **المصفوفة المُعززة:** دخل أرقام معاملات المتغيرات (A) في الأقسام اليسار، ودخل ناتج المعادلات (B) في العمود اللي بعد الخط الفاصل (=).
+                            </span>
+                        </span>
+                    </h3>
                     <div class="matrix-inputs-wrapper augmented" id="matrix-inputs">
                         <!-- Inputs generated here -->
                     </div>
@@ -255,26 +423,41 @@
 
                 <!-- Operations Buttons (Full width on mobile) -->
                 <div class="flex flex-col gap-4 justify-start pt-4">
-                    <button onclick="startSolution()" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold shadow-xl hover:bg-indigo-700 transition transform hover:scale-[1.01] w-full">
-                        <i class="fas fa-play mr-2"></i> Start Solution
+                    <button onclick="startSolution()" class="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold shadow-xl hover:bg-indigo-700 transition transform hover:scale-[1.01] w-full" id="tour-step-4">
+                        <i class="fas fa-play ml-2"></i> بدء الحل
                     </button>
-                    <button onclick="generateRandomMatrix()" class="bg-yellow-500 text-white px-6 py-3 rounded-xl font-semibold shadow-xl hover:bg-yellow-600 transition w-full">
-                        <i class="fas fa-dice mr-2"></i> Generate Random
+                    <button onclick="generateRandomMatrix()" class="bg-yellow-500 text-white px-6 py-3 rounded-xl font-semibold shadow-xl hover:bg-yellow-600 transition w-full" id="tour-step-4-1">
+                        <i class="fas fa-dice ml-2"></i> توليد عشوائي
                     </button>
-                    <button onclick="clearInputs()" class="bg-red-500 text-white px-6 py-3 rounded-xl font-semibold shadow-xl hover:bg-red-600 transition w-full">
-                        <i class="fas fa-times-circle mr-2"></i> Clear All
+                    <button onclick="clearInputs()" class="bg-red-500 text-white px-6 py-3 rounded-xl font-semibold shadow-xl hover:bg-red-600 transition w-full" id="tour-step-4-2">
+                        <i class="fas fa-times-circle ml-2"></i> مسح الكل
                     </button>
-                    <button onclick="refreshMathJax()" class="bg-gray-500 text-white px-6 py-3 rounded-xl font-semibold shadow-xl hover:bg-gray-600 transition w-full">
-                        <i class="fas fa-sync-alt mr-2"></i> Refresh Equations
+                    <button onclick="refreshMathJax()" class="bg-gray-500 text-white px-6 py-3 rounded-xl font-semibold shadow-xl hover:bg-gray-600 transition w-full" id="tour-step-4-3">
+                        <i class="fas fa-sync-alt ml-2"></i> تحديث المعادلات
+                    </button>
+                    
+                    <!-- NEW TOUR BUTTON -->
+                    <button onclick="startTour()" class="bg-green-600 text-white px-6 py-3 rounded-xl font-semibold shadow-xl hover:bg-green-700 transition w-full mt-4" id="tour-step-4-4">
+                        <i class="fas fa-map-signs ml-2"></i> بدء الجولة التعليمية
                     </button>
                 </div>
             </div>
 
             <!-- Results Area (Stacks content vertically on mobile) -->
             <div id="solver-results" class="hidden border-t pt-8 mt-4">
-                <h2 class="text-2xl font-bold text-indigo-700 mb-4 text-center">Results and Operation Log</h2>
+                <h2 class="text-2xl font-bold text-indigo-700 mb-4 text-center">
+                    النتائج وسجل العمليات
+                    <span class="tooltip-container">
+                        <i class="fas fa-question-circle tooltip-icon"></i>
+                        <span class="tooltip-box">
+                            **كيف تشوف الحل:** <br>
+                            استخدم أزرار (الخطوة التالية/الخطوة السابقة) عشان تشوف كل عملية صف بالتفصيل. <br>
+                            في الآخر هيظهر الحل النهائي في القسم اللي على اليسار.
+                        </span>
+                    </span>
+                </h2>
                 
-                <div class="grid md:grid-cols-2 gap-6">
+                <div class="grid md:grid-cols-2 gap-6" id="tour-step-5">
                     <div>
                         <!-- System Classification -->
                         <div id="system-classification" class="p-4 mb-4 rounded font-semibold hidden text-gray-900"></div>
@@ -283,33 +466,40 @@
                         <div id="final-solution" class="mb-6 glass-panel p-4 rounded-lg shadow-md"></div>
                         
                         <!-- Step Control Buttons -->
-                        <div class="flex justify-center gap-4 mb-6">
+                        <div class="flex justify-center gap-4 mb-6" id="tour-step-6">
                             <button id="prev-step-btn" onclick="showPrevStep()" disabled class="bg-gray-300 text-gray-700 px-4 py-2 rounded-xl font-medium transition hover:bg-gray-400 disabled:opacity-50">
-                                <i class="fas fa-arrow-left"></i> Previous Step
+                                <i class="fas fa-arrow-right"></i> الخطوة السابقة
                             </button>
                             <button id="next-step-btn" onclick="showNextStep()" disabled class="bg-indigo-500 text-white px-4 py-2 rounded-xl font-medium transition hover:bg-indigo-600 disabled:opacity-50">
-                                Next Step <i class="fas fa-arrow-right"></i>
+                                الخطوة التالية <i class="fas fa-arrow-left"></i>
                             </button>
                         </div>
                     </div>
 
                     <!-- Detailed Steps Display -->
-                    <div id="step-by-step-log" class="glass-panel p-6 rounded-lg border shadow-lg overflow-x-auto">
+                    <div id="step-by-step-log" class="glass-panel p-6 rounded-lg border shadow-lg overflow-x-auto" id="tour-step-7">
                         <p class="text-gray-500">Solution steps will appear here.</p>
                         <!-- Current step matrix and operation -->
                     </div>
                 </div>
 
                 <!-- Export Options -->
-                <div class="mt-8 flex flex-wrap gap-4 justify-center">
+                <div class="mt-8 flex flex-wrap gap-4 justify-center" id="tour-step-8">
                     <button onclick="exportReport()" class="bg-teal-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-teal-600 transition">
-                        <i class="fas fa-print mr-2"></i> Export Detailed Report (Print)
+                        <i class="fas fa-print ml-2"></i> تصدير تقرير مفصل (طباعة)
                     </button>
                 </div>
             </div>
         </div> <!-- End of solver-view -->
 
     </div>
+
+    <!-- COPYRIGHT FOOTER ADDED HERE -->
+    <footer class="mt-10 py-4 text-center text-gray-500 text-sm border-t border-gray-200">
+        <!-- Using the information from the meta tag -->
+        <p>حقوق النشر © 2025 كليه الحاسبات والمعلومات جامعة المنصورة. جميع الحقوق محفوظة.</p>
+    </footer>
+    <!-- END COPYRIGHT FOOTER -->
 
     <!-- Firebase SDKs (kept for environment compatibility) -->
     <script type="module">
@@ -642,6 +832,7 @@
         let matrixCols = 3;
         let solutionSteps = [];
         let currentStepIndex = 0;
+        let tourActive = false; // Flag to stop button spamming and control navigation
         
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
@@ -782,7 +973,6 @@
                     handleInputValidation(e.target);
                     saveMatrixToLocalStorage();
                 });
-                handleInputValidation(constantInput);
                 rowDiv.appendChild(constantInput);
 
                 container.appendChild(rowDiv);
@@ -1166,7 +1356,6 @@
                 matrix: M.map(row => row.map(f => f.multiply(Fraction.one()))),
                 operation: '\\text{Reduced Row Echelon Form (RREF) - Final Result}',
                 pivot: null,
-                operationRow: -1,
                 classification: classification,
                 isREF: false // Not REF (it's RREF)
             });
@@ -1484,8 +1673,132 @@
             window.print();
         }
 
+        // =======================================================
+        // TOUR LOGIC
+        // =======================================================
+        const tourSteps = [
+            // Step 0: Introduction (No element highlighted)
+            { id: 'app', text: 'مرحباً! أنا زكي، بغبغان الجبر الخطي! سأساعدك في التعرف على وظيفة كل جزء في البرنامج. (اضغط للمتابعة)', highlight: false, isIntro: true, scroll: false },
+            // Step 1: Selector
+            { id: 'tour-step-1', text: 'أول خطوة: لازم تختار طريقة الحل اللي عايز تستخدمها: RREF (الأسهل والأسرع) أو REF (بتوقف عند المرحلة المتوسطة وبتحتاج "تعويض خلفي").', highlight: true, isIntro: false, scroll: false },
+            // Step 2: Size Inputs
+            { id: 'tour-step-2', text: 'هنا بتحدد حجم المصفوفة. المشروع ده معمول لـ 3 معادلات (صفوف) و 3 متغيرات (أعمدة) بشكل افتراضي.', highlight: true, isIntro: false, scroll: false },
+            // Step 3: Matrix Input Area
+            { id: 'matrix-input-container', text: 'ده المكان اللي هتدخل فيه الأرقام. دخل المعاملات (A) على اليسار، ونتائج المعادلات (B) على اليمين. متنساش تدخل الكسور بالشكل (1/2).', highlight: true, isIntro: false, scroll: true },
+            // Step 4: Start Button (بدء الحل)
+            { id: 'tour-step-4', text: 'بعد ما تدخل كل الأرقام، دوس على الزر ده عشان يبدأ البرنامج في حل النظام خطوة بخطوة.', highlight: true, isIntro: false, scroll: false },
+            // Step 5: Random Button (توليد عشوائي)
+            { id: 'tour-step-4-1', text: 'لو عايز تجرب النظام بسرعة، ممكن تدوس على "توليد عشوائي" عشان يملأ المصفوفة بأرقام عشوائية.', highlight: true, isIntro: false, scroll: false },
+            // Step 6: Clear Button (مسح الكل)
+            { id: 'tour-step-4-2', text: 'زر "مسح الكل" بيمسح كل الإدخالات اللي دخلتها وبيخفي النتائج.', highlight: true, isIntro: false, scroll: false },
+            // Step 7: Refresh Button (تحديث المعادلات)
+            { id: 'tour-step-4-3', text: 'ده لو كنت بتستخدم صيغ رياضية معقدة وعايز تتأكد إنها بتتحدث صح.', highlight: true, isIntro: false, scroll: false },
+            // Step 8: Results Area (Conditional Step)
+            { id: 'tour-step-5', text: 'القسم ده هيظهر بعد ما تدوس بدء الحل. هتلاقي هنا التصنيف (حل وحيد، لا نهائي، أو لا يوجد حل) وهتشوف الحل النهائي. ', highlight: true, scroll: true, isIntro: false },
+            // Step 9: Step-by-Step Log
+            { id: 'step-by-step-log', text: 'ده سجل العمليات. كل خطوة صف عملها البرنامج هتظهر هنا بالترتيب عشان تقدر تتابعها بالتفصيل.', highlight: true, scroll: true, isIntro: false },
+            // Step 10: Navigation Buttons (Prev/Next Step)
+            { id: 'tour-step-6', text: 'الأزرار دي بتخليك تتنقل بين خطوات الحل اللي عملها البرنامج، عشان تراجع كل عملية صف.', highlight: true, scroll: true, isIntro: false },
+            // Step 11: Export Button (تصدير تقرير)
+            { id: 'tour-step-8', text: 'لو عايز تحفظ الحل والخطوات في تقرير مطبوع، دوس على زر "تصدير تقرير مفصل" ده.', highlight: true, scroll: true, isIntro: false },
+            // Step 12: Final Conclusion
+            { id: 'app', text: 'ممتاز! كده تكون عرفت كل حاجة عن البرنامج. تقدر دلوقتي تجرب تحل أي نظام معادلات!', highlight: false, isIntro: false, scroll: false }
+        ];
+
+        let currentTourStep = 0;
+        let tourTimeout = null;
+        
+        function highlightElement(id, highlight) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.toggle('highlight-tour', highlight);
+            }
+        }
+
+        function startTour() {
+            if (tourTimeout) return; // Prevent spam clicking
+
+            currentTourStep = 0;
+            // 1. Show the modal
+            document.getElementById('tour-modal').style.display = 'flex';
+            // 2. Ensure app elements are not highlighted initially
+            tourSteps.forEach(step => highlightElement(step.id, false));
+            displayTourStep();
+        }
+
+        function nextTourStep() {
+            if (tourTimeout) return; 
+            
+            // Debounce click for 300ms
+            tourTimeout = setTimeout(() => { tourTimeout = null; }, 300);
+
+            currentTourStep++;
+            displayTourStep();
+        }
+
+        function displayTourStep() {
+            if (currentTourStep >= tourSteps.length) {
+                // Tour finished
+                document.getElementById('tour-modal').style.display = 'none';
+                if (tourSteps.length > 0) {
+                   highlightElement(tourSteps[tourSteps.length - 1].id, false); // Unhighlight last element
+                }
+                return;
+            }
+
+            // Unhighlight previous step
+            if (currentTourStep > 0) {
+                highlightElement(tourSteps[currentTourStep - 1].id, false);
+            }
+
+            const step = tourSteps[currentTourStep];
+            const el = document.getElementById(step.id);
+
+            // === CRITICAL FIX: Handle conditional jump for results steps (Steps 8, 9, 10, 11) ===
+            const resultsAreaHidden = document.getElementById('solver-results').classList.contains('hidden');
+
+            if (currentTourStep >= 8 && currentTourStep <= 11) { // Steps covering results area
+                if (resultsAreaHidden) {
+                    document.getElementById('tour-text').textContent = 'عشان نكمل الجولة ونشرح النتائج، دوس على زر "بدء الحل" (اللي باللون البنفسجي) الأول عشان تظهر النتائج وسجل العمليات. بعد كده دوس "موافق" هنا.';
+                    highlightElement('tour-step-4', true); // Highlight start button
+                    return; 
+                } else if (!resultsAreaHidden) {
+                    // If results are visible, hide the start button highlight
+                    highlightElement('tour-step-4', false);
+                }
+            } else {
+                 highlightElement('tour-step-4', false); // Ensure start button is not highlighted elsewhere
+            }
+            // End Conditional Jump Fix
+
+            if (!el) {
+                console.error(`Tour element ID not found: ${step.id}`);
+                // Proceed to next step if element is missing (should not happen with updated IDs)
+                currentTourStep++;
+                displayTourStep();
+                return;
+            }
+            
+            document.getElementById('tour-text').textContent = step.text;
+            
+            if (step.scroll) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            // Highlight current step
+            if (step.highlight) {
+                highlightElement(step.id, true);
+            }
+            
+            const btn = document.getElementById('tour-button');
+            btn.textContent = (currentTourStep === tourSteps.length - 1) ? 'إنهاء' : 'موافق / التالي';
+        }
+        
         window.onload = function() {
             document.body.classList.add('light');
+            // Set default to 3x3 for the user's latest request
+            document.getElementById('rows').value = 3;
+            document.getElementById('cols').value = 3;
             generateMatrixInput();
             
             const solverView = document.getElementById('solver-view');
@@ -1499,6 +1812,8 @@
             window.handleInputValidation = handleInputValidation;
             window.refreshMathJax = refreshMathJax;
             window.startSolution = startSolution; // Expose the unified start function
+            window.startTour = startTour; // Expose the tour start function
+            window.nextTourStep = nextTourStep; // Expose the next step function
         };
     </script>
 </body>
